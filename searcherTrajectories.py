@@ -1,0 +1,1 @@
+# Python File to generate Ground Searcher Trajectories based on Terrain Information

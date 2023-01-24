@@ -1,0 +1,1 @@
+# Python file to develop Initial Robot Paths based on Terrain Information and eventually Searcher Trajectories
