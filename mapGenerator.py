@@ -66,7 +66,24 @@ class SimulationMap:
         self.terrainHeight = (initialMap - randNumMin)*(maxHeight - minHeight)/(1 - randNumMin) + minHeight
 
         # Smoothen map by applying a 2D gaussian filter
-        self.terrainHeight = cv.blur(self.terrainHeight, (3, 3)) 
+        self.terrainHeight = cv.blur(self.terrainHeight, (3, 3))
+
+    def saveMap(self, mapName:str):
+        np.save(mapName, self.terrainHeight)
+
+    # Load function is designed to read 400x400 maps with a 10x10 resolution. 
+    # WILL NOT WORK FOR ANY OTHER MAP SPEC UNLESS EDITED
+    def loadMap(self, mapName:str="TestMap.npy"):
+        sidelen = 400
+        res = 10
+
+        range = int(sidelen/2)
+        x = np.linspace(-range, range, int(sidelen/res))
+        y = np.linspace(-range, range, int(sidelen/res))
+
+        self.terrainHeight = np.load(mapName)
+        self.mapX, self.mapY = np.meshgrid(x, y)
+
 
 
     ###### VISUALIZE MAP ######
@@ -91,5 +108,7 @@ class SimulationMap:
 
 # Test
 
-map = SimulationMap(400, (10, 10))
+map = SimulationMap(100, (10, 10))
+#map.saveMap("TestMap")
+map.loadMap()
 map.plot()
