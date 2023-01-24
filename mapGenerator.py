@@ -109,6 +109,5 @@ class SimulationMap:
 # Test
 
 map = SimulationMap(100, (10, 10))
-#map.saveMap("TestMap")
 map.loadMap()
 map.plot()
