@@ -7,10 +7,13 @@ import cv2 as cv
 class SimulationMap:
     """This class represents the terrain in which we develop and test our path planning algorithms
          Member variables:
-            terrainHeight - a Matrix which holds the terrain height at a given point on the map
+            terrainHeight - a Matrix which holds the terrain height at a given point (x1, x2) on the map
                 Example, self.terrainHeight[2, 4] yields a height in meters at location (2, 4)
+            xGradient - tendency to move left or right in the terrain given a point (x1, x2)
+            yGradient - tendency to move up or down in the terrain given a point (x1, x2)            
             mapX - a collection of x coordinates (in meters) represented as a Matrix. Mainly used for visualization
             mapY - a collection of y coordinates (in meters) represented as a Matrix. Mainly used for visualization
+
     """
 
     def __init__(self, size, resolution) -> None:
@@ -61,12 +64,18 @@ class SimulationMap:
         # Generate a map of size self.mapX.shape filled with random numbers from a normal distribution.
         # For all entries in the initial map, limit the lowest value to be randNumMin
         initialMap = np.maximum(np.random.normal(0, 0.34, self.mapX.shape), randNumMin)
+        print(f"Initial Map's dimensions: {initialMap.shape}")
+
 
         # Perform an operation on all values of initialMap to translate from range [randNumMin, 1], to [minHeight, maxHeight]
         self.terrainHeight = (initialMap - randNumMin)*(maxHeight - minHeight)/(1 - randNumMin) + minHeight
 
         # Smoothen map by applying a 2D gaussian filter
         self.terrainHeight = cv.blur(self.terrainHeight, (3, 3))
+
+        # Generate gradients
+        self.xGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
+        self.yGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
 
     def saveMap(self, mapName:str):
         np.save(mapName, self.terrainHeight)
@@ -82,6 +91,8 @@ class SimulationMap:
         y = np.linspace(-range, range, int(sidelen/res))
 
         self.terrainHeight = np.load(mapName)
+        self.xGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
+        self.yGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
         self.mapX, self.mapY = np.meshgrid(x, y)
 
 
@@ -103,11 +114,8 @@ class SimulationMap:
 
         plt.show()
 
-
-
-
 # Test
 
-map = SimulationMap(100, (10, 10))
+map = SimulationMap(400, (10, 10))
 map.loadMap()
-map.plot()
+#map.plot()
