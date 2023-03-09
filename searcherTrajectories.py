@@ -172,8 +172,6 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
                     path.append(path_section[section_length - j - 1])
                 break
 
-            # check if searcher is stuck, and relax restrictions if so
-
             # generate child nodes
             children = []
             for adjacent_node in map.adjacentNodes(current_node.position, 400):
