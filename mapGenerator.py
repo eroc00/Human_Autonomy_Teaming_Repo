@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
-
+from matplotlib.colors import LightSource
+from matplotlib import cm
 
 
 class SimulationMap:
@@ -15,8 +16,23 @@ class SimulationMap:
             mapY - a collection of y coordinates (in meters) represented as a Matrix. Mainly used for visualization
     """
 
-    def __init__(self, size, resolution) -> None:
-        self.generateMap(size, resolution)
+    terrainHeight = None
+    mapX = None
+    mapY = None
+    xGradient = None
+    yGradient = None
+    obstacles = list()
+
+
+    def __init__(self, size, resolution, minHeight = 0, maxHeight = 10, numObstacles = 6) -> None:
+        self.generateMap(size, resolution, minHeight, maxHeight)
+
+        obstacleX = size*np.random.rand(numObstacles)
+        obstacleY = size*np.random.rand(numObstacles)
+        obstacleRadii = 75*np.random.rand(numObstacles) + 25
+
+        self.obstacles = list(zip(list(zip(obstacleX, obstacleY)), obstacleRadii))
+
 
 
     def adjacentNodes(self, point:tuple, gridSize):
@@ -56,18 +72,19 @@ class SimulationMap:
         self.mapX, self.mapY = np.meshgrid(x, y)
 
         # Variables extrapolated from Path Planning Paper's example terrain
-        maxHeight = 15 #meters
-        minHeight = 0 #meters
         randNumMin = 0
 
         # Generate a map of size self.mapX.shape filled with random numbers from a normal distribution.
         # For all entries in the initial map, limit the lowest value to be randNumMin
-        initialMap = np.maximum(np.random.normal(0, 0.34, self.mapX.shape), randNumMin)
-        print(f"Initial Map's dimensions: {initialMap.shape}")
+        initialMap = np.maximum(np.random.normal(0, 1, self.mapX.shape), randNumMin)
+        print(f"Initial Map's dimensions: {initialMap.shape}, Max Height: {initialMap.max()}, Min Height = {initialMap.min()}")
 
 
         # Perform an operation on all values of initialMap to translate from range [randNumMin, 1], to [minHeight, maxHeight]
-        self.terrainHeight = (initialMap - randNumMin)*(maxHeight - minHeight)/(1 - randNumMin) + minHeight
+        self.terrainHeight = self.convertRange(initialMap, initialMap.min(), initialMap.max(), minHeight, maxHeight)
+
+        print(f"Terrain Height's dimensions: {self.terrainHeight.shape}, Max Height: {np.max(self.terrainHeight)}, Min Height = {np.min(self.terrainHeight)}")
+
 
         # Smoothen map by applying a 2D gaussian filter
         self.terrainHeight = cv.blur(self.terrainHeight, (3, 3))
@@ -76,8 +93,12 @@ class SimulationMap:
         self.xGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
         self.yGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
 
-    def saveMap(self, mapName:str):
+    def saveMap(self, mapName:str = "TestMap"):
         np.save(mapName, self.terrainHeight)
+        with open(f"{mapName}_obstacles.txt", 'w') as fp:
+            for obj in self.obstacles:
+                fp.writelines("%f %f, %f" % (obj[0][0], obj[0][1], obj[1]))
+
 
     # Load function is designed to read 400x400 maps with a 10x10 resolution. 
     # WILL NOT WORK FOR ANY OTHER MAP SPEC UNLESS EDITED
@@ -93,6 +114,17 @@ class SimulationMap:
         self.xGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
         self.yGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
         self.mapX, self.mapY = np.meshgrid(x, y)
+        obstacles = list()
+
+        with open(f"{mapName.replace('.npy', '')}_obstacles.txt", 'r') as fp:
+            for line in fp:
+
+                data = line[:-1]
+                position, radii = data.split(', ')
+                x, y = position.split(' ')
+
+                obstacles.append([(float(x), float(y)), float(radii)])
+                
 
 
 
@@ -100,21 +132,42 @@ class SimulationMap:
     def plot(self, plotMaxHeight=80, rstride=2, cstride=2):
         #maplen, mapwidth = map.shape # map size
 
-        Z = self.terrainHeight.copy()
+        print(self.mapX.size, self.mapY.size, self.terrainHeight.size)
 
-        Z[1, 1] = plotMaxHeight
+        # Plot a basic wireframe.        
+        # axis limits
+        #plt.xlim(0, 400)
+        #plt.ylim(0, 400)
+        fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
 
-        print(self.mapX.size, self.mapY.size, Z.size)
-
-        # Plot a basic wireframe.
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        ax.plot_wireframe(self.mapX, self.mapY, Z, rstride=rstride, cstride=cstride)
-
+        ls = LightSource(0, 0)
+        # To use a custom hillshading mode, override the built-in shading and pass
+        # in the rgb colors of the shaded surface calculated from "shade".
+        rgb = ls.shade(self.terrainHeight, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
+        surf = ax.plot_surface(self.mapX, self.mapY, self.terrainHeight, rstride=rstride, cstride=cstride, facecolors=rgb) #,\
+                            #linewidth=0, antialiased=False, shade=False)
+        #ax.plot_wireframe(terrainMap.mapX, terrainMap.mapY, terrainMap.terrainHeight, rstride=1, cstride=1)
+        ax.set_zlim(0, 5)
+        plt.title("Terrain")
         plt.show()
+
+    def convertRange(self, x, old_min, old_max, new_min, new_max):
+        # normalize x to the range [0, 1]
+        normalized_x = (x - old_min) / (old_max - old_min)
+        
+        # scale x to the new range
+        new_x = (normalized_x * (new_max - new_min)) + new_min
+        
+        return new_x
 
 # Test
 
-map = SimulationMap(400, (10, 10))
-map.loadMap()
-#map.plot()
+map = SimulationMap(400, (10, 10), maxHeight=3)
+#map.loadMap()
+map.plot(plotMaxHeight = 15, rstride=1, cstride=1)
+prompt = input("Would you like to save the map? ")
+
+
+if prompt == 'yes':
+    print("Map Saved.")
+    map.saveMap()

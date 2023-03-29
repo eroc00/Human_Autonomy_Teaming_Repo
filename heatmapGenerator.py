@@ -4,6 +4,7 @@ import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
 
+
 # STATIC MAP TO BE USED IS PROVIDED IN THE FILE "TestMap.npy"
 map = SimulationMap(400, (10, 10))
 map.loadMap()
@@ -16,13 +17,25 @@ def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
     #xGradient = cv.Sobel(src=terrainMap.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
     #yGradient = cv.Sobel(src=terrainMap.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
 
+    #plt.xlim(-200, 200)
+    #plt.ylim(-200, 200)
+
     plt.rcParams["figure.figsize"] = [14.00, 7.00]
     plt.rcParams["figure.autolayout"] = True
 
+    t = cv.resize(terrainMap.terrainHeight, (400, 400))
+    plt.imshow(t, cmap='terrain_r')
+    plt.show()
+
     plt.subplot(1, 3, 1)
-    plt.imshow(terrainMap.terrainHeight, cmap='terrain_r')
+    plt.xlim(-200, 200)
+    plt.ylim(-200, 200)
+    plt.imshow(t, cmap='terrain_r')
     plt.title("Terrain")
     plt.colorbar()
+    
+    plt.show()
+    # plt.colorbar()
 
     plt.subplot(1, 3, 2)
     plt.imshow(terrainMap.xGradient, cmap="gray")
