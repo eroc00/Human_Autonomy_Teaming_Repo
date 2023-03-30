@@ -34,11 +34,23 @@ class UAVTrajectories:
         #map.loadMap()
         #map.plot()
 
-        Xobstacle, Xcenters, Xradii = self.generateObstacles(40)
+        
 
         #Xfree = X / Xobstacle
-        Xstart = (100,0)
-        Xgoal = (100, 399)
+        Xstart = (10, 0)
+        Xgoal  = (10, 40)
+        Xobstacle, Xcenters, Xradii = self.generateObstacles(10)
+
+        OK = False
+        while not OK:
+            START_COLLISIONS = self.obstacle_check(Xstart, Xobstacle)    # check for collision between start point and obstacles
+            END_COLLISIONS   = self.obstacle_check(Xgoal, Xobstacle)     # check for collision between end point and obstacles
+
+            if (any(START_COLLISIONS)) or (any(END_COLLISIONS)):         # if a collision with any obstacle exists
+                pass                                                     # do nothing; loop will re-run
+            else:                                                        # if no collision exists
+                OK = True                                                # clear to move forward
+        
         V = [['q0', Xstart, 'None']]
         E = []
 
@@ -50,7 +62,7 @@ class UAVTrajectories:
             # generate new node and check for collisions with obstacles
             while not POINT_OK:
                 POINT_NAME = "q{}".format(len(V))
-                 # coordinates of random point -- Xrand = self.randomPosition()
+                # coordinates of random point -- Xrand = self.randomPosition()
                 POINT_X = np.random.randint(0, 101)
                 POINT_Y = np.random.randint(0, 101)
                 Xrand = (POINT_X, POINT_Y)
@@ -64,10 +76,8 @@ class UAVTrajectories:
                         distChange = DIST_TO_POINT                                        # save distance to node as minimum distance
                         CLOSEST_NODE = i                                                # save list index of closest node
 
-       
                 PARENT = "q{}".format(CLOSEST_NODE)         # "parent" node name
                 PARENT_COORDS = (V[CLOSEST_NODE][1])        # "parent" node coordinates
-
 
                 # create vector from closest node to random point
                 D_X = POINT_X - V[CLOSEST_NODE][1][0]
@@ -92,14 +102,14 @@ class UAVTrajectories:
                     POINT_OK = True                         # move forward
 
             # add new node data to list
-            V.append([POINT_NAME, (NODE_X, NODE_Y), PARENT])
+            V.append([POINT_NAME, Node, PARENT])
 
             # add new path segment to list
-            V.append([PARENT_COORDS, (NODE_X, NODE_Y), POINT_NAME])
+            E.append([PARENT_COORDS, Node])
 
             # determine if line to endpoint intersects obstacles
             LINE_COLLISIONS = []        # list of obstacle collision conditions
-            for j in range(40):
+            for j in range(10):
                 TOO_CLOSE = False       # obstacle intersection condition
                 BETWEEN = False         # intersection between endpoints condition
 
@@ -136,20 +146,16 @@ class UAVTrajectories:
         CURRENT_COORDS = V[-1][1]                       # x-y coordinates of last point in path
         PARENT_NODE = V[-1][2]                          # name of initial parent node
         while not AT_START:                                            # iterate until start is reached
-            print("LENGTH:  ",len(V))
             for l in range(len(V)):                                    # scan all nodes to find parent
-                if V[l][2] == PARENT_NODE:                             # if node name matches parent node name
+                if V[l][0] == PARENT_NODE:                             # if node name matches parent node name
                     PATH_POINTS.insert(0, V[l][1])                     # add node to path
                     PATH_SEGS.insert(0, [V[l][1], CURRENT_COORDS])     # add path segment from node to parent
                     CURRENT_COORDS = V[l][1]                           # parent node becomes new current node
-                    PARENT_NODE = V[l-1][2]                              # new parent node
+                    PARENT_NODE = V[l][2]                              # new parent node
                     print(PARENT_NODE)
             if PARENT_NODE == 'None':                                  # once start point is reached
-                print('8')
                 AT_START = True                                        # move forward
-                print('9')
         # create node plot points
-        print('10')
         NODES_PLOT_X = [V[a][1][0] for a in range(len(V))]
         NODES_PLOT_Y = [V[a][1][1] for a in range(len(V))]
         
@@ -166,8 +172,8 @@ class UAVTrajectories:
         # create image
         FIG, AX = plt.subplots(num = "Pathfinding RRT", nrows=1, ncols=1, sharex=True, sharey=True, figsize=(9, 9))
         # axis limits
-        plt.xlim(0, 400)
-        plt.ylim(0, 400)
+        plt.xlim(0, 40)
+        plt.ylim(0, 40)
 
         # plot obstacles as circular patch collection
         OBSTACLES = [plt.Circle(center, radius) for center, radius in zip(Xcenters, Xradii)]
@@ -237,12 +243,12 @@ class UAVTrajectories:
         OBSTACLE_RADII = []
         # x- and y-coordinates of obstacles
         for i in range(N):
-            OBSTACLE_X = 400*np.random.rand(1)
-            OBSTACLE_Y = 400*np.random.rand(1)
+            OBSTACLE_X = 40*np.random.rand(1)
+            OBSTACLE_Y = 40*np.random.rand(1)
             
             OBSTACLE_CENTER.append([OBSTACLE_X, OBSTACLE_Y])
             #obstacle radii
-            OBSTACLE_RADII.append(10*np.random.rand(1))
+            OBSTACLE_RADII.append(5*np.random.rand(1))
         # fill obstacle properties list
         OBSTACLE_PROPS = [OBSTACLE_CENTER, OBSTACLE_RADII]
 
@@ -258,7 +264,7 @@ class UAVTrajectories:
                 in_obstacles    Obstacle collision conditions; list of Boolean values
         """
         in_obstacles = []                   # intersection condition (Boolean) with each obstacle
-        for ind_a in range(40):              # for each obstacle
+        for ind_a in range(10):              # for each obstacle
             # calculate distance from point to obstacle center
             distance_to = self.distance(OBSTACLE_PROPS[0][ind_a], p_check)
             # check distance against obstacle radius
