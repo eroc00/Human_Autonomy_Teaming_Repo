@@ -16,7 +16,8 @@ _start_y = 10
 target_list_a = [(15, 5), (17, 18), (18, 25)]
 target_list_b = [(10, 10), (10, 27), (16, 22), (27, 19), (37, 8)]
 target_list_c = [(12, 10), (13, 19), (18, 6)]
-_targets = target_list_c
+target_list_cross_map = [(10, 10), (20, 10), (30, 10), (39, 10)]
+_targets = target_list_a
 
 
 # find which of the closest adjacent nodes is closest to the current target
@@ -33,7 +34,7 @@ def f_gradient(x, prev_x, target, max_dx):
     adj = map.adjacentNodes(x, 400)
     num_adj = len(adj)
     current_height = map.terrainHeight[x]
-    height_diff = list(abs(current_height - map.terrainHeight[adj[i]]) for i in range(num_adj))
+    height_diff = list(abs(current_height - map.terrainHeight[swap(adj[i])]) for i in range(num_adj))
     distance = list((math.dist(adj[i], target)) for i in range(num_adj))
     for i in range(num_adj):
         # remove all inaccessible adjacent nodes from consideration
@@ -44,8 +45,13 @@ def f_gradient(x, prev_x, target, max_dx):
     return adj[update]
 
 
+def swap(x):
+    y = (x[1], x[0])
+    return y
+
+
 # generate paths based on gradient and waypoints
-def generate_paths(targets, start_x, start_y):
+def generate_paths(targets, start_x, start_y, init_limit, limit_inc):
     # init
     start_position = start_x, start_y
     num_targets = len(targets)
@@ -53,8 +59,8 @@ def generate_paths(targets, start_x, start_y):
     x_path = [start_position[0]]
     y_path = [start_position[1]]
     position = old_p = start_position
-    init_limit = 1.0  # max gradient we want our rescuers to be crossing
-    limit_inc = 0.05  # how fast we want the gradient limit to increase
+    # init_limit = 1.0  # max gradient we want our rescuers to be crossing
+    # limit_inc = 0.05  # how fast we want the gradient limit to increase
     max_count = 20  # retry attempts before increasing gradient limit
 
     # run operation until we are out of targets
@@ -70,27 +76,46 @@ def generate_paths(targets, start_x, start_y):
             position = f_waypoint(position, targets[i])
             # if proposed location is inaccessible according to current limits
             # switch to gradient pathing instead
-            if abs(map.terrainHeight[old_p] - map.terrainHeight[position]) > limit:
+            if abs(map.terrainHeight[swap(old_p)] - map.terrainHeight[swap(position)]) > limit:
                 position = f_gradient(old_p, older_p, targets[i], limit)
             counter = counter + 1
             # to prevent an infinite loop, gradually increase the gradient threshold
             if counter > count_threshold:
                 counter = current_distance
                 limit = limit + limit_inc
-                print("limit increased to ", limit)
+                # print("limit increased to ", limit)
             # record current location so we can retrace our steps
             x_path.append(position[0])
             y_path.append(position[1])
             path.append(position)
-        print("reached ", targets[i])
+        # print("reached ", targets[i])
+
+    # path details
+    # print("path taken: ", path)
+    op_path = []
+    for i in range(len(path)):
+        if path[i] not in op_path:
+            op_path.append(path[i])
+        else:
+            index = op_path.index(path[i])
+            del op_path[index+1:]
+    print("path taken: ", op_path)
+    print("path length: ", len(op_path))
+    gradient_cost = 0
+    current_elevation = map.terrainHeight[swap(op_path[0])]
+    for i in range(len(op_path)):
+        prev_elevation = current_elevation
+        current_elevation = map.terrainHeight[swap(op_path[i])]
+        gradient_cost = gradient_cost + abs(current_elevation - prev_elevation)
+    print("path difficulty (vertical smoothness): ", gradient_cost)
 
     # plot the results
-    plot_paths(x_path, y_path, targets, start_x, start_y)
+    plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
 
 
-def plot_paths(path_x, path_y, targets_list, start_x, start_y):
+def plot_paths(path_x, path_y, targets_list, start_x, start_y, color):
     # plot the path the searcher took
-    plt.plot(path_x, path_y)
+    plt.plot(path_x, path_y, color)
     # mark the target locations on the plot
     x_targets = []
     y_targets = []
@@ -122,7 +147,7 @@ class Node:
 #  init_limit - initial max gradient the searcher can traverse
 #  tolerance - amount of times we can get stuck in one place before action is taken
 #  tol_inc - how quickly we want to increase the gradient limit the searcher can traverse
-def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
+def a_star_search(targets, start_x, start_y, init_limit, lim_inc, map_size=40):
     start_position = start_x, start_y
     path = []
     x_path = []
@@ -137,8 +162,8 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
         else:
             start_node = Node(None, targets[i-1])
         end_node = Node(None, targets[i])
-        print("start position: ", start_node.position)
-        print("current target: ", end_node.position)
+        # print("start position: ", start_node.position)
+        # print("current target: ", end_node.position)
         open_list = []
         closed_list = []
         open_list.append(start_node)
@@ -158,7 +183,7 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
 
             # check if reached current target
             if current_node.position == end_node.position:
-                print("reached ", end_node.position)
+                # print("reached ", end_node.position)
                 reached_target = 1
                 path_section = []
                 current = current_node
@@ -174,14 +199,11 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
 
             # generate child nodes
             children = []
-            for adjacent_node in map.adjacentNodes(current_node.position, 400):
+            for adjacent_node in map.adjacentNodes(current_node.position, map_size):
                 # check if child node is accessible from current node
-                # map.terrainHeight returns elevation for (y, x) not (x, y) so need to account for that
-                current_pos_th = (current_node.position[1], current_node.position[0])
-                adjacent_pos_th = (adjacent_node[1], adjacent_node[0])
-                if abs(map.terrainHeight[current_pos_th] - map.terrainHeight[adjacent_pos_th]) < limit:
+                if abs(map.terrainHeight[swap(current_node.position)] - map.terrainHeight[swap(adjacent_node)]) < limit:
                     # check if child node is in bounds
-                    if adjacent_node[0] <= 20 or adjacent_node[0] >= 0 or adjacent_node[1] <= 20 or adjacent_node[1] >= 0:
+                    if map_size >= adjacent_node[0] >= 0 and map_size >= adjacent_node[1] >= 0:
                         new_node = Node(current_node, adjacent_node)
                         children.append(new_node)
 
@@ -200,28 +222,40 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
                         child.g = current_node.g + math.sqrt(2)
                     child.h = math.dist(child.position, end_node.position)
                     child.f = child.g + child.h
-                    for open_node in open_list:
-                        if child.position == open_node.position and child.g > open_node.g:
+                    for open_index, open_node in enumerate(open_list):
+                        if child.position == open_node.position:
                             flag = 1
+                            if child.g < open_node.g:
+                                open_list[open_index] = child
                     if flag == 0:
                         open_list.append(child)
                         # print("add ", child.position, " to open list")
             # if target can not be reached with current settings, relax restrictions
             if len(open_list) == 0:
-                print("target unreachable with current settings")
+                # print("target unreachable with current settings of ", limit)
                 limit = limit + lim_inc
                 open_list = []
                 closed_list = []
                 open_list.append(start_node)
 
-    # plot results
-    print("path taken ", path)
+    # path stats
     path_length = len(path)
+    gradient_cost = 0
+    current_elevation = map.terrainHeight[swap(path[0])]
+    for i in range(path_length):
+        prev_elevation = current_elevation
+        current_elevation = map.terrainHeight[swap(path[i])]
+        gradient_cost = gradient_cost + abs(current_elevation - prev_elevation)
+    print("path taken ", path)
+    print("path length: ", path_length)
+    print("path difficulty (vertical smoothness): ", gradient_cost)
+
+    # plot results
     for i in range(path_length):
         temp = path[i]
         x_path.append(temp[0])
         y_path.append(temp[1])
-    plot_paths(x_path, y_path, targets, start_x, start_y)
+    plot_paths(x_path, y_path, targets, start_x, start_y, 'g')
 
 
 ############################################################################
@@ -231,10 +265,14 @@ def run():
     plt.imshow(map.terrainHeight, cmap="terrain_r")
 
     # original algorithm based on waypoint and gradient following method
-    # generate_paths(_targets, _start_x, _start_y)
+    print("waypoint/gradient search")
+    # generate_paths(_targets, _start_x, _start_y, 1, 0.05)
+    generate_paths(_targets, _start_x, _start_y, 0.4, 0.2)
 
     # a star inspired search method
-    a_star_search(_targets, _start_x, _start_y, 0.1, 0.2)
+    print("A* search")
+    # a_star_search(_targets, _start_x, _start_y, 0.1, 0.2)
+    a_star_search(_targets, _start_x, _start_y, 0.5, 0.25)
 
     plt.show()
 
