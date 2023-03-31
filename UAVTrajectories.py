@@ -1,8 +1,6 @@
 import math
 import numpy as np
-from random import random
 from operator import length_hint
-from mapGenerator import SimulationMap
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -10,36 +8,29 @@ import matplotlib.pyplot as plt
 
 
 class UAVTrajectories:
+
     ''' 
     Python File to generate UAV Trajectories based on Terrain Information
-    gamma > 0, zeta > 0, eta> 0 -- tunable parameters to adjust the radius of the D-dimensional sphere
-    r                           -- radius of D-dimensional sphere
-    |V|                         -- the cardinality of the set of vertices V
     V                           -- Vertices (V <-Xstart)
-    X                           -- configuration space 
     Xobstacles                  -- obstacles (within X)
-    Xfree                       -- free space ( xfree = X/ Xobstacle)
     Xstart                      -- start configuration (within xfree)
     Xgoal                       -- goal configuration (within xfree)
     E                           -- edges (E <- 0)
-    Xrand                       -- random samples (within X)
     '''
 
-    def __init__(self, size, resolution) -> None:
-        self.resolution = resolution
-        self.gridSize = size
+    def __init__(self, numObstacles) -> None:
+        self.numObstacles = numObstacles;
      
     def RRT(self):
         #X = SimulationMap(400, (10, 10))
         #map.loadMap()
         #map.plot()
 
-        
-
         #Xfree = X / Xobstacle
+
         Xstart = (10, 0)
         Xgoal  = (10, 40)
-        Xobstacle, Xcenters, Xradii = self.generateObstacles(10)
+        Xobstacle, Xcenters, Xradii = self.generateObstacles(self.numObstacles)
 
         OK = False
         while not OK:
@@ -109,7 +100,7 @@ class UAVTrajectories:
 
             # determine if line to endpoint intersects obstacles
             LINE_COLLISIONS = []        # list of obstacle collision conditions
-            for j in range(10):
+            for j in range(self.numObstacles):
                 TOO_CLOSE = False       # obstacle intersection condition
                 BETWEEN = False         # intersection between endpoints condition
 
@@ -237,6 +228,7 @@ class UAVTrajectories:
         return length
 
     def generateObstacles(self, N):
+        '''
         #Generate Random Obstacles
         OBSTACLE_PROPS = []                 # list to hold obstacle centers/radii
         OBSTACLE_CENTER = []                # list of obstacle center coordinates as tuples
@@ -251,6 +243,32 @@ class UAVTrajectories:
             OBSTACLE_RADII.append(5*np.random.rand(1))
         # fill obstacle properties list
         OBSTACLE_PROPS = [OBSTACLE_CENTER, OBSTACLE_RADII]
+        '''
+
+        #Input Obstacles from txtfile
+        with open("TestMap_obstacles.txt", "r") as txt_file:
+            input_data = [line.split() for line in txt_file.read().strip().split('\n')]
+
+        for i in range(len(input_data)):
+            for j in range(3):
+                input_data[i][j] = input_data[i][j].replace(',','')
+                input_data[i][j] = float(input_data[i][j])
+
+        print(input_data)
+        OBSTACLE_PROPS = []                 
+        OBSTACLE_CENTER = []                
+        OBSTACLE_RADII = []
+
+        for i in range(len(input_data)):
+            OBSTACLE_X, OBSTACLE_Y = input_data[i][0], input_data[i][1]
+            OBSTACLE_X = OBSTACLE_X/10
+            OBSTACLE_Y = OBSTACLE_Y/10
+            RADII = input_data[i][2]/20
+
+            OBSTACLE_CENTER.append([OBSTACLE_X, OBSTACLE_Y])
+            OBSTACLE_RADII.append(RADII)
+
+        OBSTACLE_PROPS = [OBSTACLE_CENTER, OBSTACLE_RADII]
 
         return OBSTACLE_PROPS, OBSTACLE_CENTER, OBSTACLE_RADII
 
@@ -264,7 +282,7 @@ class UAVTrajectories:
                 in_obstacles    Obstacle collision conditions; list of Boolean values
         """
         in_obstacles = []                   # intersection condition (Boolean) with each obstacle
-        for ind_a in range(10):              # for each obstacle
+        for ind_a in range(self.numObstacles):              # for each obstacle
             # calculate distance from point to obstacle center
             distance_to = self.distance(OBSTACLE_PROPS[0][ind_a], p_check)
             # check distance against obstacle radius
@@ -306,7 +324,7 @@ class UAVTrajectories:
 
 
 #Testing
-test = UAVTrajectories(400, (10,10))
+test = UAVTrajectories(6)
 test.RRT()
 
 '''
