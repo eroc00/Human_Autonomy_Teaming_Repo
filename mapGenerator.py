@@ -22,6 +22,8 @@ class SimulationMap:
     xGradient = None
     yGradient = None
     obstacles = list()
+    maplen = 0
+    res = 0
 
 
     def __init__(self, size, resolution, minHeight = 0, maxHeight = 10, numObstacles = 6) -> None:
@@ -32,11 +34,14 @@ class SimulationMap:
         obstacleRadii = 75*np.random.rand(numObstacles) + 25
 
         self.obstacles = list(zip(list(zip(obstacleX, obstacleY)), obstacleRadii))
+        self.maplen = size
+        self.res = resolution[0]
 
 
 
-    def adjacentNodes(self, point:tuple, gridSize):
+    def adjacentNodes(self, point:tuple):
         adjNodes = []
+        gridSize = int(self.maplen/self.res)
 
         if (point[0] < 0 or point[0] > gridSize-1 or point[1] < 0 or point[1]>gridSize-1):
             return adjNodes
@@ -97,18 +102,18 @@ class SimulationMap:
         np.save(mapName, self.terrainHeight)
         with open(f"{mapName}_obstacles.txt", 'w') as fp:
             for obj in self.obstacles:
-                fp.writelines("%f %f, %f" % (obj[0][0], obj[0][1], obj[1]))
+                fp.write("%f %f, %f\n" % (obj[0][0], obj[0][1], obj[1]))
 
 
     # Load function is designed to read 400x400 maps with a 10x10 resolution. 
     # WILL NOT WORK FOR ANY OTHER MAP SPEC UNLESS EDITED
     def loadMap(self, mapName:str="TestMap.npy"):
-        sidelen = 400
-        res = 10
+        self.maplen = 400
+        self.res = 10
 
-        range = int(sidelen/2)
-        x = np.linspace(-range, range, int(sidelen/res))
-        y = np.linspace(-range, range, int(sidelen/res))
+        range = int(self.maplen/2)
+        x = np.linspace(-range, range, int(self.maplen/self.res))
+        y = np.linspace(-range, range, int(self.maplen/self.res))
 
         self.terrainHeight = np.load(mapName)
         self.xGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
@@ -133,7 +138,6 @@ class SimulationMap:
         #maplen, mapwidth = map.shape # map size
 
         print(self.mapX.size, self.mapY.size, self.terrainHeight.size)
-
         # Plot a basic wireframe.        
         # axis limits
         #plt.xlim(0, 400)
@@ -163,11 +167,9 @@ class SimulationMap:
 # Test
 
 map = SimulationMap(400, (10, 10), maxHeight=3)
-#map.loadMap()
+map.loadMap()
 map.plot(plotMaxHeight = 15, rstride=1, cstride=1)
 prompt = input("Would you like to save the map? ")
-
-
-if prompt == 'yes':
-    print("Map Saved.")
+if prompt.lower() == 'yes':
     map.saveMap()
+    print("Map Saved.")
