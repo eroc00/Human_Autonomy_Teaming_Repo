@@ -122,6 +122,50 @@ def swap(x):
     return y
 
 
+# path coverage
+def coverage(path, this_heatmap):
+    path_heat = 0
+    unobstructed_heat = 0
+    total_heat = 0
+    for x in range(int(map.maplen / map.res)):
+        for y in range(int(map.maplen / map.res)):
+            total_heat = total_heat + this_heatmap[y, x]
+            flag = 0
+            if (x, y) in path:
+                path_heat = path_heat + this_heatmap[y, x]
+            for k in range(len(map.obstacles)):
+                ob_cord, ob_radius = scale_obstacle(map.obstacles[k])
+                if math.dist((x, y), ob_cord) < ob_radius:
+                    flag = 1
+            if flag == 0:
+                unobstructed_heat = unobstructed_heat + this_heatmap[y, x]
+    return path_heat, unobstructed_heat, total_heat
+
+
+# find the closest target to current position
+def closest(location, targets):
+    distances = []
+    for i in range(len(targets)):
+        distances.append(math.dist(location, targets[i]))
+    min_distance = min(distances)
+    index = distances.index(min_distance)
+    return index
+
+
+# order target list for optimal route
+def organize_targets(start, targets):
+    new_target_list = []
+    current = start
+    temp_list = targets
+    for i in range(len(targets)):
+        index = closest(current, temp_list)
+        current = temp_list[index]
+        new_target_list.append(temp_list[index])
+        del temp_list[index]
+    return new_target_list
+
+
+
 ##################################################################################
 # below functions/classes are for the A* Search Function #########################
 ##################################################################################
@@ -381,6 +425,7 @@ def a_star_uav(targets_in, start_x, start_y):
         x_path.append(temp[0])
         y_path.append(temp[1])
     plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
+    return path
 
 
 def scale_obstacle(obstacle):
@@ -457,12 +502,20 @@ def run_2():
 def run_3():
     plot_obstacles()
     plt.imshow(heatmap, cmap="hot")
-    a_star_uav(_targets3, 0, 0)
+    path3 = a_star_uav(_targets3, 0, 0)
+    path_heat, reachable_heat, total_heat = coverage(path3, heatmap)
+    print("path heat = ", path_heat)
+    print("reachable heat = ", reachable_heat)
+    print("total heat = ", total_heat)
 
 
 # plt.imshow(map.terrainHeight, cmap="gray")
-plt.imshow(map.terrainHeight, cmap="terrain_r")
-run_1()
-run_2()
+# plt.imshow(map.terrainHeight, cmap="terrain_r")
+# run_1()
+# run_2()
 # run_3()
-plt.show()
+# plt.show()
+print(target_list_b)
+temp = organize_targets((17, 21), target_list_b)
+print(temp)
+print((17, 21))
