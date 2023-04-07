@@ -166,10 +166,12 @@ class SimulationMap:
 
 # Test
 
-map = SimulationMap(400, (10, 10), maxHeight=3)
-map.loadMap()
-map.plot(plotMaxHeight = 15, rstride=1, cstride=1)
-prompt = input("Would you like to save the map? ")
-if prompt.lower() == 'yes':
-    map.saveMap()
-    print("Map Saved.")
+
+if __name__ == "__main__":
+    map = SimulationMap(400, (10, 10), maxHeight=3)
+    map.loadMap()
+    map.plot(plotMaxHeight = 15, rstride=1, cstride=1)
+    prompt = input("Would you like to save the map? ")
+    if prompt.lower() == 'yes':
+        map.saveMap()
+        print("Map Saved.")
