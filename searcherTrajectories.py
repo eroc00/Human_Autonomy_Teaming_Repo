@@ -513,9 +513,8 @@ def run_3():
 # plt.imshow(map.terrainHeight, cmap="terrain_r")
 # run_1()
 # run_2()
-# run_3()
-# plt.show()
-print(target_list_b)
-temp = organize_targets((17, 21), target_list_b)
-print(temp)
-print((17, 21))
+
+run_3()
+
+plt.show()
+
