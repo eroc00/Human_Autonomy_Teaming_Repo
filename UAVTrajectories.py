@@ -20,16 +20,20 @@ class UAVTrajectories:
 
     def __init__(self, numObstacles) -> None:
         self.numObstacles = numObstacles;
+        # create image
+        self.FIG, self.AX = plt.subplots(num = "Pathfinding RRT", nrows=1, ncols=1, sharex=True, sharey=True, figsize=(9, 9))
+        # axis limits
+        plt.xlim(0, 40)
+        plt.ylim(0, 40)
+
      
-    def RRT(self):
+    def RRT(self, start, goal):
         #X = SimulationMap(400, (10, 10))
         #map.loadMap()
         #map.plot()
 
-        #Xfree = X / Xobstacle
-
-        Xstart = (10, 0)
-        Xgoal  = (10, 40)
+        Xstart = start
+        Xgoal  = goal
         Xobstacle, Xcenters, Xradii = self.generateObstacles(self.numObstacles)
 
         OK = False
@@ -160,16 +164,11 @@ class UAVTrajectories:
         POINTS_COLOR = '#1691e5'            # color for all nodes/edges
         PATH_COLOR = '#c0120a'              # color of path nodes and segments
 
-        # create image
-        FIG, AX = plt.subplots(num = "Pathfinding RRT", nrows=1, ncols=1, sharex=True, sharey=True, figsize=(9, 9))
-        # axis limits
-        plt.xlim(0, 40)
-        plt.ylim(0, 40)
-
         # plot obstacles as circular patch collection
         OBSTACLES = [plt.Circle(center, radius) for center, radius in zip(Xcenters, Xradii)]
         PATCHES = mpl.collections.PatchCollection(OBSTACLES, facecolors='black')
-        AX.add_collection(PATCHES)
+        self.AX.add_collection(PATCHES)
+        
         # plot start & end points
         plt.scatter(Xstart[0], Xstart[1], s=100, c=START_COLOR, marker='+')
         plt.scatter(Xgoal[0], Xgoal[1], s=100, c=END_COLOR, marker='+')
@@ -181,12 +180,12 @@ class UAVTrajectories:
             if i > 0:
                 # plot newest edge
                 NODE_SEGMENTS = mpl.collections.LineCollection(E[i-1:i], colors=POINTS_COLOR)
-                AX.add_collection(NODE_SEGMENTS)
+                self.AX.add_collection(NODE_SEGMENTS)
             plt.pause(0.1)
 
         # plot final segment
         NODE_SEGMENTS = mpl.collections.LineCollection([E[-1], [Xgoal]], colors=POINTS_COLOR)
-        AX.add_collection(NODE_SEGMENTS)
+        self.AX.add_collection(NODE_SEGMENTS)
         plt.pause(0.1)
 
         for i in range(len(PATH_POINTS)):
@@ -195,32 +194,19 @@ class UAVTrajectories:
             if i > 0:
                 # plot newest edge
                 PATH_SEGMENTS = mpl.collections.LineCollection(PATH_SEGS[i-1:i], colors=PATH_COLOR)
-                AX.add_collection(PATH_SEGMENTS)
+                self.AX.add_collection(PATH_SEGMENTS)
             plt.pause(0.05)
 
         # plot final path segment
         PATH_SEGMENTS = mpl.collections.LineCollection([PATH_SEGS[-1], [Xgoal]], colors=PATH_COLOR)
-        AX.add_collection(PATH_SEGMENTS)
+        self.AX.add_collection(PATH_SEGMENTS)
         plt.pause(0.05)
 
+        
+    def show_image(self):
         # show image
-        plt.show()              
-
-        """
-        for i in Nsamples:
-            Xrand = self.randomPosition()
-            Xnearest = self.getNearestVertex(Xrand)
-            Xnew = self.steer(Xnearest, Xrand, distChange, maxDist)
-            E += {(Xnearest, Xnew)}
-            r = min(((self.gamma/self.zeta) * (math.log(Vabs)/Vabs)**(1/D)),eta)
-            
-            j = self.getVerticesInBallOfRadius(Xnew, r)/ Xnearest
-
-            for Xnbor in j:
-                if self.cost(Xnbor) > (self.cost(Xnew) + self.distance(Xnew,Xnbor)):
-                    E = E/(self.parentVertexOf(Xnearest), Xnearest)
-                    E += {(Xnew, Xnbor)}
-        """
+        plt.pause(0.5)
+        plt.show()  
 
     #Returns length between two points
     def distance(self, point1:tuple, point2:tuple):
@@ -254,7 +240,6 @@ class UAVTrajectories:
                 input_data[i][j] = input_data[i][j].replace(',','')
                 input_data[i][j] = float(input_data[i][j])
 
-        print(input_data)
         OBSTACLE_PROPS = []                 
         OBSTACLE_CENTER = []                
         OBSTACLE_RADII = []
@@ -286,13 +271,10 @@ class UAVTrajectories:
             # calculate distance from point to obstacle center
             distance_to = self.distance(OBSTACLE_PROPS[0][ind_a], p_check)
             # check distance against obstacle radius
-            #print("Distance: ", distance_to, "   Radius: ",OBSTACLE_PROPS[1][ind_a] )
             if distance_to <= OBSTACLE_PROPS[1][ind_a]:     # if radius > distance
                 in_obstacles.append(True)                   # mark point within obstacle
             else:                                           # if distance > radius
                 in_obstacles.append(False)                  # mark point outside obstacle
-
-        #print(in_obstacles)
 
         return in_obstacles
 
@@ -325,11 +307,10 @@ class UAVTrajectories:
 
 #Testing
 test = UAVTrajectories(6)
-test.RRT()
+test.RRT((10, 0), (10, 40))
 
-'''
-# STATIC MAP TO BE USED IS PROVIDED IN THE FILE "TestMap.npy"
-map = SimulationMap(400, (10, 10))
-map.loadMap()
-map.plot()
-'''
+test.RRT((20, 0), (20, 40))
+
+test.RRT((30, 0), (30, 40))
+
+test.show_image()
