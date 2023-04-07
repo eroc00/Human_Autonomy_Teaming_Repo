@@ -47,7 +47,7 @@ def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
     #cv.waitKey()
 
     x = np.array(initialPos)
-    print(f"Gradient at {initialPos} = {terrainMap.xGradient[x[0]][x[1]], terrainMap.yGradient[x[0]][x[1]]}")
+    #print(f"Gradient at {initialPos} = {terrainMap.xGradient[x[0]][x[1]], terrainMap.yGradient[x[0]][x[1]]}")
 
 
     x1 = x.copy() # x_-1: used to calculate speed
@@ -108,13 +108,13 @@ def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
 
         # Update previous locations
 
-def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=10, blur='no'):
+def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=25000, blur='no', blurWindow=(3, 3)):
     heatmap = np.zeros(terrainMap.terrainHeight.shape).astype(int)
     for startLoc in initPositions:
-        heatmap = heatmap + generateHeatmap(terrainMap, startLoc, iterations=25000)
+        heatmap = heatmap + generateHeatmap(terrainMap, startLoc, iterations=iterations)
 
     if blur == 'yes':
-        heatmap = cv.blur(heatmap, (3, 3))
+        heatmap = cv.blur(heatmap, blurWindow)
 
     return heatmap
 
@@ -125,7 +125,7 @@ def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=1
 
 if __name__ == "__main__":
 
-    map = SimulationMap(400, (10, 10))
+    map = SimulationMap(400, 10)
     map.loadMap()
 
     # Plot Terrain

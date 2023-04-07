@@ -26,7 +26,7 @@ class SimulationMap:
     res = 0
 
 
-    def __init__(self, size, resolution, minHeight = 0, maxHeight = 10, numObstacles = 6) -> None:
+    def __init__(self, size, resolution:int, minHeight = 0, maxHeight = 10, numObstacles = 6) -> None:
         self.generateMap(size, resolution, minHeight, maxHeight)
 
         obstacleX = size*np.random.rand(numObstacles)
@@ -35,7 +35,7 @@ class SimulationMap:
 
         self.obstacles = list(zip(list(zip(obstacleX, obstacleY)), obstacleRadii))
         self.maplen = size
-        self.res = resolution[0]
+        self.res = resolution
 
 
 
@@ -66,9 +66,10 @@ class SimulationMap:
     #   resolution - coordinate increment rate
     #   minHeight - minimum land height found in map at any point
     #   maxHeight - maximum land height found in map at any point
-    def generateMap(self, size:int, resolution:tuple, minHeight = 0, maxHeight = 15):
-        i, j = resolution # resolution, 10x10 according to ryan williams' paper
-
+    def generateMap(self, size:int, resolution:int, minHeight = 0, maxHeight = 15):
+        i = resolution # resolution, 10x10 according to ryan williams' paper
+        j = resolution
+        
         range = int(size/2)
 
         x = np.linspace(-range, range, int(size/i))
@@ -168,7 +169,7 @@ class SimulationMap:
 
 
 if __name__ == "__main__":
-    map = SimulationMap(400, (10, 10), maxHeight=3)
+    map = SimulationMap(400, 10, maxHeight=3)
     map.loadMap()
     map.plot(plotMaxHeight = 15, rstride=1, cstride=1)
     prompt = input("Would you like to save the map? ")

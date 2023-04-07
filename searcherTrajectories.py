@@ -75,7 +75,7 @@ def generate_paths(targets, start_x, start_y, init_limit, limit_inc):
     op_path, difficulty = path_details(path)
 
     # plot the results
-    plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
+    #plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
 
     return op_path, difficulty
 
@@ -235,11 +235,11 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
     path_length, difficulty = a_star_stats(path)
 
     # plot results
-    for i in range(path_length):
-        temp = path[i]
-        x_path.append(temp[0])
-        y_path.append(temp[1])
-    plot_paths(x_path, y_path, targets, start_x, start_y, 'g')
+    #for i in range(path_length):
+    #    temp = path[i]
+    #    x_path.append(temp[0])
+    #    y_path.append(temp[1])
+    #plot_paths(x_path, y_path, targets, start_x, start_y, 'g')
 
     return path, difficulty
 
@@ -376,11 +376,11 @@ def a_star_uav(targets_in, start_x, start_y):
             break
 
     # plot results
-    for i in range(len(path)):
-        temp = path[i]
-        x_path.append(temp[0])
-        y_path.append(temp[1])
-    plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
+    #for i in range(len(path)):
+    #    temp = path[i]
+    #    x_path.append(temp[0])
+    #    y_path.append(temp[1])
+    #plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
 
 
 def scale_obstacle(obstacle):
@@ -409,11 +409,18 @@ def init_heat_map(_map, init_locations):
     heatmap = LostPeopleHeatmap(_map, init_locations, blur='yes')
     return heatmap
 
+def generateSearcherMap(terrainMap:SimulationMap, pathPoints:list):
+    searcherMap = np.zeros(terrainMap.terrainHeight.shape).astype(np.int8)
+    for point in pathPoints:
+        searcherMap[point[1], point[0]] = 1
+
+    return searcherMap
+
 
 ############################################################################
 # execute ##################################################################
 # STATIC MAP TO BE USED IS PROVIDED IN THE FILE "TestMap.npy"
-map = SimulationMap(400, (10, 10))
+map = SimulationMap(400, 10)
 map.loadMap()
 
 # start positions
@@ -460,9 +467,10 @@ def run_3():
     a_star_uav(_targets3, 0, 0)
 
 
-# plt.imshow(map.terrainHeight, cmap="gray")
-plt.imshow(map.terrainHeight, cmap="terrain_r")
-run_1()
-run_2()
-# run_3()
-plt.show()
+if __name__ == "__main__":
+    # plt.imshow(map.terrainHeight, cmap="gray")
+    plt.imshow(map.terrainHeight, cmap="terrain_r")
+    run_1()
+    run_2()
+    # run_3()
+    plt.show()

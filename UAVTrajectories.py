@@ -324,8 +324,9 @@ class UAVTrajectories:
 
 
 #Testing
-test = UAVTrajectories(6)
-test.RRT()
+if __name__ == "__main__":
+    test = UAVTrajectories(6)
+    test.RRT()
 
 '''
 # STATIC MAP TO BE USED IS PROVIDED IN THE FILE "TestMap.npy"
