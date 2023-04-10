@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 def augmentedHeatmap(searcherMap, heatmap, tuner):
 
-    mu = np.average(heatmap)
+    mu = 2*np.average(heatmap)
 
     #numerator = heatmap[:, :] + mu
     #denominator = 1 + tuner*searcherMap

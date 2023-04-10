@@ -29,6 +29,8 @@ class SimulationMap:
     def __init__(self, size, resolution:int, minHeight = 0, maxHeight = 10, numObstacles = 6) -> None:
         self.generateMap(size, resolution, minHeight, maxHeight)
 
+        self.obstacles = []
+
         obstacleX = size*np.random.rand(numObstacles)
         obstacleY = size*np.random.rand(numObstacles)
         obstacleRadii = 75*np.random.rand(numObstacles) + 25
@@ -120,7 +122,7 @@ class SimulationMap:
         self.xGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
         self.yGradient = cv.Sobel(src=self.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
         self.mapX, self.mapY = np.meshgrid(x, y)
-        obstacles = list()
+        self.obstacles = list()
 
         with open(f"{mapName.replace('.npy', '')}_obstacles.txt", 'r') as fp:
             for line in fp:
@@ -129,7 +131,7 @@ class SimulationMap:
                 position, radii = data.split(', ')
                 x, y = position.split(' ')
 
-                obstacles.append([(float(x), float(y)), float(radii)])
+                self.obstacles.append([(float(x), float(y)), float(radii)])
                 
 
 

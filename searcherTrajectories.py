@@ -90,7 +90,7 @@ def path_details(path):
         else:
             index = op_path.index(path[i])
             del op_path[index + 1:]
-    print("path taken: ", op_path)
+    #print("path taken: ", op_path)
     # print("path length: ", len(op_path))
     gradient_cost = 0
     current_elevation = map.terrainHeight[swap(op_path[0])]
@@ -112,7 +112,7 @@ def plot_paths(path_x, path_y, targets_list, start_x, start_y, color):
         temp = targets_list[i]
         x_targets.append(temp[0])
         y_targets.append(temp[1])
-    plt.plot(x_targets, y_targets, 'ro')
+    plt.plot(x_targets, y_targets)
     # plot the starting location
     plt.plot(start_x, start_y, 'yd')
 
@@ -123,7 +123,7 @@ def swap(x):
 
 
 # path coverage
-def coverage(path, this_heatmap):
+def coverage(map:SimulationMap, path, this_heatmap):
     path_heat = 0
     unobstructed_heat = 0
     total_heat = 0
@@ -185,7 +185,7 @@ class Node:
 #  init_limit - initial max gradient the searcher can traverse
 #  tolerance - amount of times we can get stuck in one place before action is taken
 #  tol_inc - how quickly we want to increase the gradient limit the searcher can traverse
-def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
+def a_star_search(map:SimulationMap, targets, start_x, start_y, init_limit, lim_inc):
     start_position = start_x, start_y
     path = []
     x_path = []
@@ -276,7 +276,7 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
                 closed_list = []
                 open_list.append(start_node)
 
-    path_length, difficulty = a_star_stats(path)
+    path_length, difficulty = a_star_stats(map, path)
 
     # plot results
     #for i in range(path_length):
@@ -289,7 +289,7 @@ def a_star_search(targets, start_x, start_y, init_limit, lim_inc):
 
 
 # a star stats
-def a_star_stats(path):
+def a_star_stats(map:SimulationMap, path):
     path_length = len(path)
     gradient_cost = 0
     current_elevation = map.terrainHeight[swap(path[0])]
@@ -297,14 +297,14 @@ def a_star_stats(path):
         prev_elevation = current_elevation
         current_elevation = map.terrainHeight[swap(path[i])]
         gradient_cost = gradient_cost + abs(current_elevation - prev_elevation)
-    print("path taken ", path)
+    #print("path taken ", path)
     # print("path length: ", path_length)
     # print("path difficulty (vertical smoothness): ", gradient_cost)
     return path_length, gradient_cost
 
 
 # UAV search with heat map and obstacles
-def a_star_uav(targets_in, start_x, start_y):
+def a_star_uav(map:SimulationMap, heatmap, targets_in, start_x, start_y):
     start_position = start_x, start_y
     no_path = 0
     path = []
@@ -319,7 +319,7 @@ def a_star_uav(targets_in, start_x, start_y):
             ob_cords, ob_radius = scale_obstacle(obstacle)
             if math.dist(targets_in[i], ob_cords) <= ob_radius:
                 flag = 1
-                print("remove ", targets_in[i])
+                #print("remove ", targets_in[i])
         if flag != 1:
             targets.append(targets_in[i])
     num_targets = len(targets)
@@ -395,8 +395,8 @@ def a_star_uav(targets_in, start_x, start_y):
                         # incentive for pathing through hot areas
                         child_value = min(2000, heatmap[swap(child.position)]) - 5
                         child_value = child_value / 1000
-                        if child_value != 0:
-                            print(child_value, child.position)
+                        #if child_value != 0:
+                            #print(child_value, child.position)
                         new_g = child.g - child_value
                         child.g = max(new_g, 0)  # don't want negative g score
                     else:
@@ -413,27 +413,19 @@ def a_star_uav(targets_in, start_x, start_y):
                         # print("add ", child.position, " to open list")
             # if target can not be reached with current settings, relax restrictions
             if len(open_list) == 0:
-                print("target ", targets[i], " is unreachable")
+                #print("target ", targets[i], " is unreachable")
                 no_path = 55
                 break
         if no_path == 55:
             break
 
     # plot results
-<<<<<<< HEAD
     #for i in range(len(path)):
     #    temp = path[i]
     #    x_path.append(temp[0])
     #    y_path.append(temp[1])
     #plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
-=======
-    for i in range(len(path)):
-        temp = path[i]
-        x_path.append(temp[0])
-        y_path.append(temp[1])
-    plot_paths(x_path, y_path, targets, start_x, start_y, 'b')
     return path
->>>>>>> aabdb1353097e2d39ca74107f2164114bd6c5a8b
 
 
 def scale_obstacle(obstacle):
@@ -445,7 +437,7 @@ def scale_obstacle(obstacle):
     return out_cords, radius
 
 
-def plot_obstacles():
+def plot_obstacles(map):
     num_obstacles = len(map.obstacles)
     fig, ax = plt.subplots()
     plt.xlim(0, 40)
@@ -473,26 +465,7 @@ def generateSearcherMap(terrainMap:SimulationMap, pathPoints:list):
 ############################################################################
 # execute ##################################################################
 # STATIC MAP TO BE USED IS PROVIDED IN THE FILE "TestMap.npy"
-map = SimulationMap(400, 10)
-map.loadMap()
 
-# start positions
-_start_x = 0
-_start_y = 10
-_start_x2 = 0
-_start_y2 = 30
-# sample target lists
-target_list_a = [(15, 5), (17, 18), (18, 25)]
-target_list_b = [(10, 10), (10, 27), (16, 22), (27, 19), (37, 8)]
-target_list_c = [(12, 10), (13, 19), (18, 6)]
-target_list_cross_map_top = [(10, 10), (20, 10), (30, 10), (39, 10)]
-target_list_cross_map_bottom = [(10, 30), (20, 30), (30, 30), (39, 30)]
-_targets = target_list_cross_map_top
-_targets2 = target_list_cross_map_bottom
-_targets3 = [(10, 14), (15, 15), (20, 20), (25, 25), (30, 30)]
-# heat map init locations
-lost_people_init_loc = [(20, 20), (12, 8), (10, 27), (28, 10), (26, 20)]
-heatmap = init_heat_map(map, lost_people_init_loc)
 
 
 def run_1():
@@ -515,31 +488,40 @@ def run_2():
 
 
 def run_3():
-    plot_obstacles()
+    plot_obstacles(map)
     plt.imshow(heatmap, cmap="hot")
-    path3 = a_star_uav(_targets3, 0, 0)
-    path_heat, reachable_heat, total_heat = coverage(path3, heatmap)
+    path3 = a_star_uav(map, heatmap, _targets3, 0, 0)
+    path_heat, reachable_heat, total_heat = coverage(map, path3, heatmap)
     print("path heat = ", path_heat)
     print("reachable heat = ", reachable_heat)
     print("total heat = ", total_heat)
 
 
-<<<<<<< HEAD
 if __name__ == "__main__":
     # plt.imshow(map.terrainHeight, cmap="gray")
+    map = SimulationMap(400, 10)
+    map.loadMap()
+
+    # start positions
+    _start_x = 0
+    _start_y = 10
+    _start_x2 = 0
+    _start_y2 = 30
+    # sample target lists
+    target_list_a = [(15, 5), (17, 18), (18, 25)]
+    target_list_b = [(10, 10), (10, 27), (16, 22), (27, 19), (37, 8)]
+    target_list_c = [(12, 10), (13, 19), (18, 6)]
+    target_list_cross_map_top = [(10, 10), (20, 10), (30, 10), (39, 10)]
+    target_list_cross_map_bottom = [(10, 30), (20, 30), (30, 30), (39, 30)]
+    _targets = target_list_cross_map_top
+    _targets2 = target_list_cross_map_bottom
+    _targets3 = [(10, 14), (15, 15), (20, 20), (25, 25), (30, 30)]
+    # heat map init locations
+    lost_people_init_loc = [(20, 20), (12, 8), (10, 27), (28, 10), (26, 20)]
+    heatmap = init_heat_map(map, lost_people_init_loc)
+
     plt.imshow(map.terrainHeight, cmap="terrain_r")
-    run_1()
-    run_2()
-    # run_3()
+    #run_1()
+    #run_2()
+    run_3()
     plt.show()
-=======
-# plt.imshow(map.terrainHeight, cmap="gray")
-# plt.imshow(map.terrainHeight, cmap="terrain_r")
-# run_1()
-# run_2()
-
-run_3()
-
-plt.show()
-
->>>>>>> aabdb1353097e2d39ca74107f2164114bd6c5a8b

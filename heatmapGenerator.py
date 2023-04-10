@@ -7,14 +7,7 @@ import matplotlib.pyplot as plt
 #initial pos ranges from [-20, 20) in both x and y directions
 def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
 
-    #initialPos = np.array((initialPos[0] + 20, initialPos[1] + 20))
     heatmap = np.ones(terrainMap.terrainHeight.shape).astype(int)
-
-    #xGradient = cv.Sobel(src=terrainMap.terrainHeight, ddepth=cv.CV_64F, dx=1, dy=0)
-    #yGradient = cv.Sobel(src=terrainMap.terrainHeight, ddepth=cv.CV_64F, dx=0, dy=1)
-
-    #plt.xlim(-200, 200)
-    #plt.ylim(-200, 200)
 
     """
     t = cv.resize(terrainMap.terrainHeight, (400, 400))
@@ -44,9 +37,8 @@ def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
     plt.show()
     """
 
-    #cv.waitKey()
-
     x = np.array(initialPos)
+    lim = terrainMap.maplen/terrainMap.res
     #print(f"Gradient at {initialPos} = {terrainMap.xGradient[x[0]][x[1]], terrainMap.yGradient[x[0]][x[1]]}")
 
 
@@ -79,7 +71,7 @@ def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
 
         # Set bounds on calculations
         x = np.maximum(x, np.array([0, 0]))
-        x = np.minimum(x, np.array([39, 39]))
+        x = np.minimum(x, np.array([lim-1, lim-1]))
 
 
         #print(f"t = {t+1}: x = {x}; x-1 = {x1}; x-2 = {x0}")
