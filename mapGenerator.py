@@ -33,7 +33,7 @@ class SimulationMap:
 
         obstacleX = size*np.random.rand(numObstacles)
         obstacleY = size*np.random.rand(numObstacles)
-        obstacleRadii = 75*np.random.rand(numObstacles) + 25
+        obstacleRadii = 25*np.random.rand(numObstacles) + 25
 
         self.obstacles = list(zip(list(zip(obstacleX, obstacleY)), obstacleRadii))
         self.maplen = size

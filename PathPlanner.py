@@ -8,7 +8,7 @@ from BellmanFordOptimizer import BellmanFord as PathOptimizer
 import matplotlib.pyplot as plt
 import time
 
-plotBool = False
+plotBool = True
 recordTimeExecution = not plotBool
 
 class Default:
@@ -38,6 +38,9 @@ class Default:
         self.params.setdefault( 'iter', 25000 )
         self.params.setdefault( 'alpha', 9)
 
+        # Optimization Parameters
+        self.params.setdefault( 'DroneWaypoints', 2)
+
 class PathPlanner(SimulationMap):
     heatmap = None
     searcherMap = None
@@ -45,8 +48,9 @@ class PathPlanner(SimulationMap):
     pathCost = []
     params = {}
 
-    def __init__(self, load='yes', filename="TestMap.npy"):
+    def __init__(self, load='yes', filename="TestMap.npy", params=Default().params):
                  #size=400, resolution=(10, 10), minHeight=0, maxHeight=10, numObstacles=6) -> None:
+        self.params = params
         if load != 'yes':
             super().__init__(size=self.params['area'],\
                               resolution=self.params['res'],\
@@ -58,7 +62,7 @@ class PathPlanner(SimulationMap):
             self.loadMap(filename)
 
         #p = Default()
-        self.params = Default().params
+        
         self.optimizer = PathOptimizer()
         if plotBool:
             fig, self.ax = plt.subplots()
@@ -100,6 +104,7 @@ class PathPlanner(SimulationMap):
          # plot the path the searcher took
         plt.imshow(planner.terrainHeight, cmap='terrain_r')
         plt.title("Searcher Trajectories")
+        plt.colorbar()
         for waypoints, path in zip(self.waypointsList, self.pathList):     
             
             # Plot path       
@@ -124,7 +129,7 @@ class PathPlanner(SimulationMap):
         plt.colorbar()
         plt.show()
 
-    def generateDronePaths(self, startendPoints, numTurnsPerDrone):
+    def generateDronePaths(self, startendPoints):
         paths = []
 
         gridlen = int(self.maplen/self.res) - 1
@@ -135,7 +140,7 @@ class PathPlanner(SimulationMap):
 
             domain = (i*segmentLen, (i+1)*segmentLen)
 
-            self.optimizer.initGraph(self, start, end, numTurnsPerDrone, domain)
+            self.optimizer.initGraph(self, start, end, self.params["DroneWaypoints"], domain)
             self.optimizer.optimize()
             paths.append(self.optimizer.optimalPath())
 
@@ -143,7 +148,7 @@ class PathPlanner(SimulationMap):
                 x_coords = [point[0] for point in self.optimizer.waypoints]
                 y_coords = [point[1] for point in self.optimizer.waypoints]
 
-                self.ax.scatter(x_coords, y_coords, 200)
+                self.ax.scatter(x_coords, y_coords, c='g')
 
             i += 1
 
@@ -177,15 +182,11 @@ if __name__ == "__main__":
                  searcher3_waypoints]
 
     dronePointsInit = [(wp[0], wp[len(wp)-1]) for wp in waypoints]
-
-    """
-    searcher_start_pos = [(7, 39), (20, 39), (33, 39)]
-    searcher_targets=[[(0, 26), (13, 13), (7, 0)], \
-               [(13, 26), (26, 13), (20, 0)], \
-                [(26, 26), (39, 13), (33, 0)]]
-    """
-                
-    planner = PathPlanner()
+    
+    customSettings = Default()
+    #customSettings.params['DroneWaypoints'] = 4
+    #customSettings.params['numObstacles'] = 2
+    planner = PathPlanner(load='yes', params=customSettings.params)
 
     if recordTimeExecution:
         print(f"\nTIMING THE EXECUTION OF PATH PLANNER NOW...\n")
@@ -208,8 +209,9 @@ if __name__ == "__main__":
         planner.showHeatmap()
 
     #print("GENERATING DRONE PATHS...")
-    fig, planner.ax = plt.subplots()
-    optimalDronePaths = planner.generateDronePaths(dronePointsInit, 2)
+    if plotBool:
+        fig, planner.ax = plt.subplots()
+    optimalDronePaths = planner.generateDronePaths(dronePointsInit)
 
     # Plot Final Map
     if plotBool:
@@ -238,6 +240,7 @@ if __name__ == "__main__":
 
     # Execute Drone Path Planning and measure performance...
 
+    # One Problem with this approach is that it may not scale well for larger grid sizes
 
     
     
