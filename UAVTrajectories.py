@@ -57,10 +57,11 @@ class UAVTrajectories:
             # generate new node and check for collisions with obstacles
             while not POINT_OK:
                 POINT_NAME = "q{}".format(len(V))
-                # coordinates of random point -- Xrand = self.randomPosition()
-                POINT_X = np.random.randint(0, 101)
-                POINT_Y = np.random.randint(0, 101)
+                # coordinates of random point 
+                POINT_X = np.random.randint(0, 41)
+                POINT_Y = np.random.randint(0, 41)
                 Xrand = (POINT_X, POINT_Y)
+                print(Xrand)
 
                 # determine node closest to random point, distance to it, and its list index 
                 distChange = 10e10
@@ -306,14 +307,16 @@ class UAVTrajectories:
 
 
 #Testing
+'''
 <<<<<<< HEAD
 if __name__ == "__main__":
     test = UAVTrajectories(6)
-    test.RRT()
+    test.RRT((10, 0), (10, 40))
 =======
+'''
 test = UAVTrajectories(6)
 test.RRT((10, 0), (10, 40))
->>>>>>> aabdb1353097e2d39ca74107f2164114bd6c5a8b
+#>>>>>>> aabdb1353097e2d39ca74107f2164114bd6c5a8b
 
 test.RRT((20, 0), (20, 40))
 
