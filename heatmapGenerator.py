@@ -81,24 +81,64 @@ def generateHeatmap(terrainMap:SimulationMap, initialPos, iterations=10):
         # Set bounds on calculations
         pos = x.astype(int)
         
-
         # Add to heatmap
-        heatmap[pos[0]][pos[1]] = heatmap[pos[0]][pos[1]] + 1
-
-    # Display probability map
-    #heatmap = heatmap / iterations
-    
-    #mu = np.average(heatmap)
-
-    #print(f"Avg: {mu}")
-
-    #heatmap[:, :] = heatmap[:, :] + mu
-    
+        heatmap[pos[0]][pos[1]] = heatmap[pos[0]][pos[1]] + 1  
     
     return heatmap
         
 
         # Update previous locations
+
+def generateCHM(terrainMap:SimulationMap, initialPos, iterations=10):
+
+    heatmap = np.ones(terrainMap.terrainHeight.shape).astype(int)
+
+    x = np.array(initialPos)
+    lim = terrainMap.maplen/terrainMap.res
+    #print(f"Gradient at {initialPos} = {terrainMap.xGradient[x[0]][x[1]], terrainMap.yGradient[x[0]][x[1]]}")
+
+
+    dt = 0.001 # Time Increments
+    dx = np.zeros((2)) # Starting Speed
+    #y = np.zeros((2))
+
+    alpha = 5
+    beta = 0.6
+    a = 1e3
+    b = 1e5
+    m = 70
+
+
+    for t in range(iterations):
+        Fr = np.random.normal(0, 1, (2))
+
+        pos = x.astype(int)
+        Fg = np.array((terrainMap.xGradient[pos[0]][pos[1]], \
+                        terrainMap.yGradient[pos[0]][pos[1]]))
+        
+
+        k = a*(np.linalg.norm(dx/dt)) - b
+
+        ddx = ((-k*dx + alpha*Fg) + beta*Fr)*(dt/m)
+
+        dx = dx + ddx
+
+        x = x + dx*dt
+
+        # Set bounds on calculations
+        x = np.maximum(x, [0, 0])
+        x = np.minimum(x, [lim-1, lim-1])
+
+
+        print(f"t = {t+1}:\n x = {x};\n speed = {dx};\n acceleration = {ddx}")
+
+        # Set bounds on calculations
+        pos = x.astype(int)
+        
+        # Add to heatmap
+        heatmap[pos[0]][pos[1]] = heatmap[pos[0]][pos[1]] + 1  
+    
+    return heatmap
 
 def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=25000, blur='no', blurWindow=(3, 3)):
     heatmap = np.zeros(terrainMap.terrainHeight.shape).astype(int)
@@ -117,8 +157,8 @@ def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=2
 
 if __name__ == "__main__":
 
-    map = SimulationMap(400, 10)
-    map.loadMap()
+    map = SimulationMap(400, 40)
+    #map.loadMap()
 
     # Plot Terrain
     plt.rcParams["figure.figsize"] = [14.00, 7.00]
@@ -128,15 +168,14 @@ if __name__ == "__main__":
     plt.colorbar()
     plt.show()
 
-    lost_people_init_loc = [(20, 20), (12, 8), (10, 27), (28, 10), (26, 20)]
+    lost_people_init_loc = [(5, 5)]
 
     heatmap = np.zeros(map.terrainHeight.shape).astype(int)
 
     for i, startLoc in enumerate(lost_people_init_loc):
-        print(f"Modeling person {i} starting at {startLoc}...")
-        heatmap = heatmap + generateHeatmap(map, startLoc, iterations=25000)
-
-
+        print(f"Modeling person {i+1} starting at {startLoc}...")
+        heatmap = heatmap + generateCHM(map, startLoc, iterations=25000)
+    
 
     # Plot Heatmap
     #plt.imshow(heatmap, cmap="hot")

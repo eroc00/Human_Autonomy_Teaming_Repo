@@ -39,7 +39,7 @@ class Default:
         self.params.setdefault( 'alpha', 9)
 
         # Optimization Parameters
-        self.params.setdefault( 'DroneWaypoints', 2)
+        self.params.setdefault( 'DroneWaypoints', 4)
 
 class PathPlanner(SimulationMap):
     heatmap = None
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     customSettings = Default()
     #customSettings.params['DroneWaypoints'] = 4
     #customSettings.params['numObstacles'] = 2
-    planner = PathPlanner(load='yes', params=customSettings.params)
+    planner = PathPlanner(load='no', params=customSettings.params)
 
     if recordTimeExecution:
         print(f"\nTIMING THE EXECUTION OF PATH PLANNER NOW...\n")
@@ -195,18 +195,21 @@ if __name__ == "__main__":
     #print("GENERATING INITIAL HEATMAP...")
     planner.generateHeatmap(lost_people_init_loc)
     if plotBool:
-        planner.showHeatmap()
+        #planner.showHeatmap()
+        pass
     
     #print("EXECUTING SEARCHER PATHS BASED ON WAYPOINTS...")
     planner.executeSearcherPaths(waypoints)
     if plotBool:
-        planner.showSearcherPaths()
-        planner.showSearcherBinaryMap()
+        #planner.showSearcherPaths()
+        #planner.showSearcherBinaryMap()
+        pass
 
     #print("AUGMENTING HEATMAP...")
     planner.augmentHeatmap()
     if plotBool:
-        planner.showHeatmap()
+        #planner.showHeatmap()
+        pass
 
     #print("GENERATING DRONE PATHS...")
     if plotBool:
@@ -235,8 +238,8 @@ if __name__ == "__main__":
 
     
 
-    if recordTimeExecution:
-        print(f"\nPath Planner took {duration} seconds to execute.")
+    #if recordTimeExecution:
+    print(f"\nPath Planner took {duration} seconds to execute.")
 
     # Execute Drone Path Planning and measure performance...
 
