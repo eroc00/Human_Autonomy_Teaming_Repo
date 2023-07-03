@@ -6,7 +6,7 @@ import heatmapGenerator as HMG
 import augmentedHeatmap as AHM
 from BellmanFordOptimizer import BellmanFord as PathOptimizer
 import matplotlib.pyplot as plt
-import time
+import time, math, numpy as np, pandas
 
 plotBool = True
 recordTimeExecution = not plotBool
@@ -22,7 +22,8 @@ class Default:
         self.params.setdefault( 'area', 400 )
         self.params.setdefault( 'res', 10 )
         self.params.setdefault( 'zlims', (0, 3) ) # Minimum and Maximum height of terrain
-        self.params.setdefault( 'numObstacles', 6 )
+        self.params.setdefault( 'numObstacles', 0 )
+        self.params.setdefault( 'numDrones', 3)
 
         # Searcher Trajectories Parameters
 
@@ -39,7 +40,9 @@ class Default:
         self.params.setdefault( 'alpha', 9)
 
         # Optimization Parameters
-        self.params.setdefault( 'DroneWaypoints', 4)
+        self.params.setdefault( 'DroneWaypoints', 2)
+        self.params.setdefault( 'aH', 0.5)
+        self.params.setdefault( 'aL', 0.5)
 
 class PathPlanner(SimulationMap):
     heatmap = None
@@ -48,7 +51,7 @@ class PathPlanner(SimulationMap):
     pathCost = []
     params = {}
 
-    def __init__(self, load='yes', filename="TestMap.npy", params=Default().params):
+    def __init__(self, load='yes', filename="TestMap.npy", params=Default().params, plot=True):
                  #size=400, resolution=(10, 10), minHeight=0, maxHeight=10, numObstacles=6) -> None:
         self.params = params
         if load != 'yes':
@@ -64,9 +67,11 @@ class PathPlanner(SimulationMap):
         #p = Default()
         
         self.optimizer = PathOptimizer()
-        if plotBool:
+        self.plotBool = plot
+        if self.plotBool:
             fig, self.ax = plt.subplots()
             self.ax.set_aspect('equal')
+            pass
 
     def augmentHeatmap(self):
         try:
@@ -95,14 +100,14 @@ class PathPlanner(SimulationMap):
         self.searcherMap = ST.generateSearcherMap(self, points)
     
     def showHeatmap(self):
-        plt.imshow(planner.heatmap, cmap='hot')
+        plt.imshow(self.heatmap, cmap='hot')
         plt.title("Heatmap")
         plt.colorbar()
         plt.show()
 
     def showSearcherPaths(self):
          # plot the path the searcher took
-        plt.imshow(planner.terrainHeight, cmap='terrain_r')
+        plt.imshow(self.heatmap, cmap='hot')
         plt.title("Searcher Trajectories")
         plt.colorbar()
         for waypoints, path in zip(self.waypointsList, self.pathList):     
@@ -110,12 +115,12 @@ class PathPlanner(SimulationMap):
             # Plot path       
             x_path = [point[0] for point in path]
             y_path = [point[1] for point in path]
-            plt.plot(x_path, y_path)
+            plt.plot(x_path, y_path, color="#406142")
 
             # Mark Waypoints on map
             x_targets = [point[0] for point in waypoints]
             y_targets = [point[1] for point in waypoints]
-            plt.scatter(x_targets, y_targets)
+            #plt.scatter(x_targets, y_targets)
 
             # plot the starting location
             start_x, start_y = path[0]
@@ -124,7 +129,7 @@ class PathPlanner(SimulationMap):
         plt.show()
 
     def showSearcherBinaryMap(self):
-        plt.imshow(planner.searcherMap, cmap='gray')
+        plt.imshow(self.searcherMap, cmap='gray')
         plt.title("Searcher Binary Map")
         plt.colorbar()
         plt.show()
@@ -133,18 +138,18 @@ class PathPlanner(SimulationMap):
         paths = []
 
         gridlen = int(self.maplen/self.res) - 1
-        segmentLen = int(gridlen/len(waypoints))
+        segmentLen = int(gridlen/len(startendPoints))
 
         i = 0
         for start, end in startendPoints:
 
             domain = (i*segmentLen, (i+1)*segmentLen)
 
-            self.optimizer.initGraph(self, start, end, self.params["DroneWaypoints"], domain)
+            self.optimizer.initGraph(self, start, end, self.params["DroneWaypoints"], domain, self.params['aH'], self.params['aL'])
             self.optimizer.optimize()
             paths.append(self.optimizer.optimalPath())
 
-            if plotBool:
+            if self.plotBool:
                 x_coords = [point[0] for point in self.optimizer.waypoints]
                 y_coords = [point[1] for point in self.optimizer.waypoints]
 
@@ -154,24 +159,34 @@ class PathPlanner(SimulationMap):
 
         return paths
     
-    def plotPaths(self, points):
+    def plotPaths(self, points, color=None):
         # plot the path the searcher took
         start = points[0]
         path_x = [point[0] for point in points]
         path_y = [point[1] for point in points]
 
-        self.ax.plot(path_x, path_y)
+        if color is None:
+            self.ax.plot(path_x, path_y)
+        else:
+            self.ax.plot(path_x, path_y, color=color)
 
         # plot the starting location
-        self.ax.plot(start[0], start[1], 'yd')
+        #self.ax.plot(start[0], start[1], 'yd')
 
-
-
-
-if __name__ == "__main__":
-
+def pathPlannerVisualization():
     # Last seen locations of lost people based on a 40x40 map
     lost_people_init_loc = [(20, 20), (12, 8), (10, 27), (28, 10), (15, 20)]
+    #lost_people_init_loc = [(3, 14), (10, 10), (13, 4)]
+
+    
+
+    """
+    numSearchers = 3
+    for i in range(1, numSearchers+1):
+        searcherWaypoints = []
+        for p in range(4):
+            searcherWaypoints.append( ( , p*(map.size//map.res)) )
+    """
 
     searcher1_waypoints = [(7, 39), (10, 26), (1, 13), (7, 0)]
     searcher2_waypoints = [(20, 39), (25, 26), (13, 13), (20, 0)]
@@ -181,12 +196,22 @@ if __name__ == "__main__":
                  searcher2_waypoints,\
                  searcher3_waypoints]
 
-    dronePointsInit = [(wp[0], wp[len(wp)-1]) for wp in waypoints]
     
     customSettings = Default()
     #customSettings.params['DroneWaypoints'] = 4
     #customSettings.params['numObstacles'] = 2
-    planner = PathPlanner(load='no', params=customSettings.params)
+    customSettings.params['numDrones'] = 3
+    planner = PathPlanner(load="yes", filename="TestMap", params=customSettings.params)
+
+    # Initialize Drone start and end points
+    dronePointsInit = []
+    mapWidth = (customSettings.params['area']//customSettings.params['res'])-1
+    segmentWidth = mapWidth//customSettings.params['numDrones']
+    for i in range(customSettings.params['numDrones']):
+        droneX = segmentWidth//2 + i*segmentWidth
+        startPoint = (droneX, mapWidth)
+        endPoint = (droneX, 0)
+        dronePointsInit.append((startPoint, endPoint))
 
     if recordTimeExecution:
         print(f"\nTIMING THE EXECUTION OF PATH PLANNER NOW...\n")
@@ -195,7 +220,7 @@ if __name__ == "__main__":
     #print("GENERATING INITIAL HEATMAP...")
     planner.generateHeatmap(lost_people_init_loc)
     if plotBool:
-        #planner.showHeatmap()
+        planner.showHeatmap()
         pass
     
     #print("EXECUTING SEARCHER PATHS BASED ON WAYPOINTS...")
@@ -207,6 +232,7 @@ if __name__ == "__main__":
 
     #print("AUGMENTING HEATMAP...")
     planner.augmentHeatmap()
+    planner.showSearcherPaths()
     if plotBool:
         #planner.showHeatmap()
         pass
@@ -219,10 +245,19 @@ if __name__ == "__main__":
     # Plot Final Map
     if plotBool:
         print("PLOTTING...")
-        
-        for path in optimalDronePaths:
-            planner.plotPaths(path)
-        planner.ax.imshow(planner.heatmap, cmap="hot")
+
+        plt.imshow(planner.heatmap, cmap='hot')
+        plt.title("Optimized Drone Paths")
+        plt.colorbar()
+
+        # Plot Anticipated Human Ground Searcher paths
+        for humanPath in planner.pathList:
+            planner.plotPaths(humanPath, color='#406142')
+
+        # Plot Optimized Drone Paths
+        for path, c in zip(optimalDronePaths, ['#1987E6', '#1921E6', '#19E6DE']):
+            planner.plotPaths(path, color=c)
+        #planner.ax.imshow(planner.heatmap, cmap="hot")
         num_obstacles = len(planner.obstacles)
 
         for obstacle in planner.obstacles:
@@ -235,13 +270,116 @@ if __name__ == "__main__":
 
     duration = time.time() - st
 
+    # Measure performance...
+    heatAcc = 0
+    length = 0
+    for path in optimalDronePaths:
+        # Heatmap Accumulation
+        startPoint = path.pop(0)
+        heatAcc += planner.heatmap[startPoint]
+        for point in path:
+            heatAcc += planner.heatmap[point]
+            planner.heatmap[point] = 0 # Do not count spots that have already been visited by other drones
+            length += math.dist(startPoint, point)
+
+    print(f"Drone Count = {customSettings.params['numDrones']}")
+    print(f"Total Heatmap accumulation = {heatAcc:.3f}")
+    print(f"Total Length Covered = {(length * planner.res):.2f} meters")
+    print(f"Execution Time = {duration:.3f}")
+
+def pathPlannerStats(numDrones):
+    # Last seen locations of lost people based on a 40x40 map
+    lost_people_init_loc = [(20, 20), (12, 8), (10, 27), (28, 10), (15, 20)]
+
+    searcher1_waypoints = [(7, 39), (10, 26), (1, 13), (7, 0)]
+    searcher2_waypoints = [(20, 39), (25, 26), (13, 13), (20, 0)]
+    searcher3_waypoints = [(33, 39), (26, 26), (39, 13), (33, 0)]
+
+    waypoints = [searcher1_waypoints,\
+                 searcher2_waypoints,\
+                 searcher3_waypoints]
 
     
+    customSettings = Default()
+    customSettings.params['numDrones'] = numDrones
+    planner = PathPlanner(load="yes", filename="TestMap", params=customSettings.params, plot=False)
 
-    #if recordTimeExecution:
-    print(f"\nPath Planner took {duration} seconds to execute.")
+    # Initialize Drone start and end points
+    dronePointsInit = []
+    mapWidth = (customSettings.params['area']//customSettings.params['res'])-1
+    segmentWidth = mapWidth//customSettings.params['numDrones']
+    for i in range(customSettings.params['numDrones']):
+        droneX = segmentWidth//2 + i*segmentWidth
+        startPoint = (droneX, mapWidth)
+        endPoint = (droneX, 0)
+        dronePointsInit.append((startPoint, endPoint))
 
-    # Execute Drone Path Planning and measure performance...
+    st = time.time()
+
+    #print("GENERATING INITIAL HEATMAP...")
+    planner.generateHeatmap(lost_people_init_loc)
+    
+    #print("EXECUTING SEARCHER PATHS BASED ON WAYPOINTS...")
+    planner.executeSearcherPaths(waypoints)
+
+    #print("AUGMENTING HEATMAP...")
+    planner.augmentHeatmap()
+
+    #print("GENERATING DRONE PATHS...")
+    #optimalDronePaths = planner.generateDronePaths(dronePointsInit)
+
+    # Manually generated waypoints for drones
+    drone1Waypoints = [(7, 39), (7, 13), (9, 26), (7, 0)]
+    drone2Waypoints = [(20, 39), (21, 13), (17, 26), (20, 0)]
+    drone3Waypoints = [(33, 39), (25, 13), (32, 26), (33, 0)]
+
+    droneWaypoints = [drone1Waypoints, drone2Waypoints, drone3Waypoints]
+    optimalDronePaths = []
+    for wp in droneWaypoints:
+        start = wp.pop(0)
+        optimalDronePaths.append(ST.a_star_uav(planner, planner.heatmap, wp, start[0], start[1]))
+
+    duration = time.time() - st
+
+    # Measure performance...
+    heatAcc = 0
+    length = 0
+    for path in optimalDronePaths:
+        # Heatmap Accumulation
+        startPoint = path.pop(0)
+        heatAcc += planner.heatmap[startPoint]
+        for point in path:
+            heatAcc += planner.heatmap[point]
+            planner.heatmap[point] = 0 # Do not count spots that have already been visited by other drones
+            length += math.dist(startPoint, point)
+
+    #      Heat Accumulation, Distance traveled by drones, execution time
+    return heatAcc, (length*planner.res), duration
+
+    """print(f"Drone Count = {customSettings.params['numDrones']}")
+    print(f"Total Heatmap accumulation = {heatAcc:.3f}")
+    print(f"Total Length Covered = {(length * planner.res):.2f} meters")
+    print(f"Execution Time = {duration:.3f}")"""
+
+
+if __name__ == "__main__":
+    pathPlannerVisualization()
+    ppMetrics = []
+
+    """
+    iterations = 1
+    for numDrones in range(1, 7):
+        print(f"Running Algorithm with {numDrones} drones...")
+        for i in range(iterations):
+            heatAcc, dist, duration = pathPlannerStats(numDrones)
+            ppMetrics.append([numDrones, heatAcc, dist, duration])
+
+    #ppMetrics = np.array(ppMetrics)
+    resultsdf = pandas.DataFrame(ppMetrics, columns=["Drone Count", "Total Heatmap Accumulation", "Total Distance Traveled", "Code Execution Time"])
+    resultsdf.to_excel("Algorithm Performance.xlsx")
+    """
+            
+
 
     # One Problem with this approach is that it may not scale well for larger grid sizes
 

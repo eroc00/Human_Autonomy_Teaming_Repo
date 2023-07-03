@@ -4,19 +4,24 @@ from heatmapGenerator import LostPeopleHeatmap
 from itertools import product
 import matplotlib.pyplot as plt
 import math
+import time
+
 
 # Algorithm: https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm
 
 plotBool = False
 
 class BellmanFord():
-    def __init__(self) -> None:
-        if plotBool:
-            fig, self.ax = plt.subplots()
-            self.ax.set_aspect('equal')
-            pass
+    ax = None
 
-    def initGraph(self, map:SimulationMap, startPoint, endPoint, midWaypointsNum, xRange):
+    def __init__(self) -> None:
+        pass
+        """if plotBool:
+            fig, self.ax = plt.subplots()
+            self.ax.set_aspect('equal')"""
+            
+
+    def initGraph(self, map:SimulationMap, startPoint, endPoint, midWaypointsNum, xRange, aH, aL):
         self.distance = None
         self.predecessor = None
         if (endPoint[1] - startPoint[1]) < 0:
@@ -65,7 +70,7 @@ class BellmanFord():
         edgeList = [(node0, self.endPoint) for node0 in layer]
         self.E = self.E.union(edgeList)
 
-        self.C = {edge: self.cost(edge) for edge in self.E}
+        self.C = {edge: self.cost(edge, aH, aL) for edge in self.E}
 
         # Collapse list of lists 
         self.V = [item for sublist in self.V for item in sublist]
@@ -85,7 +90,7 @@ class BellmanFord():
 
                 # Negating the weights is important to find the 'longest' path
                 # As long as the initial weights are never negative
-                w = -self.C[edge]
+                w = self.C[edge]
                 if self.distance[u] + w < self.distance[v]:
                     self.distance[v] = self.distance[u] + w
                     self.predecessor[v] = u
@@ -117,18 +122,41 @@ class BellmanFord():
         optimizedPath = a_star_uav(self.map, self.map.heatmap, optimizedWaypoints, start[0], start[1])
 
         return optimizedPath
-    
+    """
     def cost(self, edge):
         start = edge[0]
         end = edge[1]
 
         path = a_star_uav(self.map, self.map.heatmap, [end], start[0], start[1])
         
-        path_heat, _, _ = coverage(self.map, path, self.map.heatmap)
-
         # NEED TO CONSIDER PATH LENGTH; ANALOGOUS TO BATTERY LIFE
 
         return path_heat
+    """
+
+    def cost(self, edge, a1, a2):
+        start = edge[0]
+        end = edge[1]
+
+        path = a_star_uav(self.map, self.map.heatmap, [end], start[0], start[1])
+        
+        # Calculate Heatmap reading (H) and Path Length (L)
+        H = 0
+        L = 0
+
+        if len(path) == 0:
+            return 0
+
+        startLoc = path.pop(0)
+        H += self.map.heatmap[startLoc]
+        for point in path:
+            L += math.dist(startLoc, point)
+            H += self.map.heatmap[point]
+            startLoc = point
+
+        C = (-a1*H + a2*L)
+
+        return C
     
     def plotWaypoints(self):
         x_coords = [point[0] for point in self.waypoints]
@@ -150,15 +178,25 @@ class BellmanFord():
 
 
 
-def cost(edge, heatmap):
+def cost(edge, heatmap, aH, aL):
     start = edge[0]
     end = edge[1]
 
     path = a_star_uav(map, heatmap, [end], start[0], start[1])
     
-    path_heat, _, _ = coverage(map, path, heatmap)
+    #path_heat, _, _ = coverage(map, path, heatmap)
 
-    return path_heat, path
+    # Calculate Heatmap reading (H) and Path Length (L)
+    H = 0
+    L = 0
+    startLoc = path.pop(0)
+    H += heatmap[startLoc]
+    for point in path:
+        L += math.dist(startLoc, point)
+        H += heatmap[point]
+        startLoc = point
+
+    return (-aH*H + aL*L), path
     
 def rawRun(map):
      #Map Initialization
@@ -207,7 +245,7 @@ def rawRun(map):
     edgeList = [(node0, end) for node0 in layer]
     E = E.union(edgeList)
 
-    C = {edge: cost(edge, heatmap) for edge in E}
+    C = {edge: cost(edge, heatmap, 0.5, 0.5) for edge in E}
 
     # Collapse list of lists 
     V = [item for sublist in V for item in sublist]
@@ -251,6 +289,11 @@ def rawRun(map):
     start = optimizedWaypoints.pop(0)
     optimizedPath = a_star_uav(map, heatmap, optimizedWaypoints, start[0], start[1])
 
+    # Record Measurement of Path
+    heatAcc = 0
+    for point in optimizedPath:
+        heatAcc += heatmap(point)
+
     # Plot Results
     plt.imshow(heatmap, cmap="hot")
     x_path = [point[0] for point in optimizedPath]
@@ -258,10 +301,10 @@ def rawRun(map):
 
     plot_paths(x_path, y_path, optimizedPath, start[0], start[1], 'b')
     
-        # Plot Optimized Waypoints
+    # Plot Optimized Waypoints
     x_coords = [point[0] for point in optimizedWaypoints]
     y_coords = [point[1] for point in optimizedWaypoints]
-    plt.scatter(x_coords, y_coords, 200)
+    plt.scatter(x_coords, y_coords, c='g')
 
 
     plt.show()
@@ -271,17 +314,16 @@ def rawRun(map):
 
 def SARRun(map):
 
-    map.loadMap()
+    lost_people_init_loc = [(3, 14), (10, 10), (13, 4)]
 
-    lost_people_init_loc = [(20, 20), (12, 8), (10, 27), (28, 10), (26, 20)]
-    map.heatmap = LostPeopleHeatmap(map, lost_people_init_loc)
+    map.heatmap = LostPeopleHeatmap(map, lost_people_init_loc, blur="yes")
     
 
-    gridlen = int(map.maplen/map.res)-1
+    gridlen = 19
     
     domain = (0, gridlen)
-
-    mapSegments = 3
+    """
+    mapSegments = 1
     segmentLen = int(gridlen/mapSegments)
     pathOptimizationInputs = []
     for i in range(mapSegments):
@@ -293,16 +335,37 @@ def SARRun(map):
 
         pathOptimizationInputs.append([start, end, 2, domain])
 
+        input = pathOptimizationInputs
+    """
     # Change which segment you want to plan the paths for
-    input = pathOptimizationInputs[2]
-    start = input[0]
-    end = input[1]
+    
+    start = (10, 0)
+    end = (10, 19)
+    midwaypoints = 2
 
+    aL = 0.5
+    aH = 1-aL
+
+    st = time.time()
     optimizer = BellmanFord()
-    optimizer.initGraph(map, start, end, input[2], input[3])
+    optimizer.initGraph(map, start, end, midwaypoints, domain, aH, aL)
     optimizer.optimize()
+    executionTime = time.time() - st
 
     path = optimizer.optimalPath()
+
+    # Record Heatmap Measurement of Path
+    heatAcc = 0
+    for point in path:
+        heatAcc += map.heatmap[point]
+
+    # Record Path Length
+    length = 0
+    pathCopy = path.copy()
+    startLoc = pathCopy.pop(0)
+    for point in pathCopy:
+        length += math.dist(startLoc, point)
+        startLoc = point
 
     # Plot results
     optimizer.plot_obstacles(map)
@@ -314,17 +377,23 @@ def SARRun(map):
     optimizer.plot_obstacles(map)
 
     optimizer.plotWaypoints()
-    print(optimizer.waypoints)
+    #print(optimizer.waypoints)
+    print(f"Intermediate Waypoint Count = {midwaypoints}")
+    print(f"Heatmap accumulation for optimized path = {heatAcc}")
+    print(f"Path Length = {(length * map.res):.2f} meters")
+    print(f"Execution Time = {executionTime:.3f}")
 
     plt.show()
     
 
 
 if __name__ == "__main__":
-    map = SimulationMap(400, 40, maxHeight=3, numObstacles=0)
+    map = SimulationMap(400, 20, maxHeight=3, numObstacles=0)
+    #map.loadMap(mapName="optimization_map")
+    #map.res = 20
 
-    rawRun(map)
-    #SARRun(map)
+    #rawRun(map)
+    SARRun(map)
 
     
    

@@ -94,56 +94,67 @@ def generateCHM(terrainMap:SimulationMap, initialPos, iterations=10):
     heatmap = np.ones(terrainMap.terrainHeight.shape).astype(int)
 
     x = np.array(initialPos)
+    speed = np.array([0, 0])
+    xm = [x, speed]
     lim = terrainMap.maplen/terrainMap.res
-    #print(f"Gradient at {initialPos} = {terrainMap.xGradient[x[0]][x[1]], terrainMap.yGradient[x[0]][x[1]]}")
-
-
-    dt = 0.001 # Time Increments
-    dx = np.zeros((2)) # Starting Speed
-    #y = np.zeros((2))
 
     alpha = 5
-    beta = 0.6
+    beta = 0.3
     a = 1e3
     b = 1e5
     m = 70
 
+    B = [[0, 0],
+         [alpha/m, beta/m]]
+    dt = 0.001
 
     for t in range(iterations):
         Fr = np.random.normal(0, 1, (2))
 
-        pos = x.astype(int)
+        pos = xm[0].astype(int)
         Fg = np.array((terrainMap.xGradient[pos[0]][pos[1]], \
                         terrainMap.yGradient[pos[0]][pos[1]]))
+        F = [Fg, Fr]
+        
+        #print(Fg)
+        
+        # Update states
+        k = a*(np.linalg.norm(xm[1]/dt)) - b
+        A = [[0, 1],
+             [0, -k/m]]
+
+            # Stochastic Differential Equation
+        dxm = np.matmul(A, xm)*dt + np.matmul(B, F)*dt
+        
+        speed = speed + dxm[1] # x2+ = x2 + dx2
+        x = x + speed*dt # x1+ = x1 + dx1
         
 
-        k = a*(np.linalg.norm(dx/dt)) - b
-
-        ddx = ((-k*dx + alpha*Fg) + beta*Fr)*(dt/m)
-
-        dx = dx + ddx
-
-        x = x + dx*dt
-
         # Set bounds on calculations
-        x = np.maximum(x, [0, 0])
-        x = np.minimum(x, [lim-1, lim-1])
+        x = np.maximum(x, np.array([0, 0]))
+        x = np.minimum(x, np.array([lim-1, lim-1]))
 
+        xm = [x, speed]
 
-        print(f"t = {t+1}:\n x = {x};\n speed = {dx};\n acceleration = {ddx}")
+        #print(f"t = {t+1}: pos = {xm[0]}; speed = {xm[1]}")
 
         # Set bounds on calculations
         pos = x.astype(int)
         
+
         # Add to heatmap
-        heatmap[pos[0]][pos[1]] = heatmap[pos[0]][pos[1]] + 1  
-    
+        heatmap[pos[0]][pos[1]] = heatmap[pos[0]][pos[1]] + 1
+
+        #if not (t % 120):
+            #print(f"Writing frame {t}")
+            #out.write(heatmap)
+
     return heatmap
 
 def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=25000, blur='no', blurWindow=(3, 3)):
     heatmap = np.zeros(terrainMap.terrainHeight.shape).astype(int)
     for startLoc in initPositions:
-        heatmap = heatmap + generateHeatmap(terrainMap, startLoc, iterations=iterations)
+        heatmap = heatmap + generateCHM(terrainMap, startLoc, iterations=iterations)
 
     if blur == 'yes':
         heatmap = cv.blur(heatmap, blurWindow)
@@ -158,7 +169,7 @@ def LostPeopleHeatmap(terrainMap:SimulationMap, initPositions:list, iterations=2
 if __name__ == "__main__":
 
     map = SimulationMap(400, 40)
-    #map.loadMap()
+    map.loadMap()
 
     # Plot Terrain
     plt.rcParams["figure.figsize"] = [14.00, 7.00]
@@ -172,10 +183,14 @@ if __name__ == "__main__":
 
     heatmap = np.zeros(map.terrainHeight.shape).astype(int)
 
+    #out = cv.VideoWriter("Heatmap_Generation.avi", cv.VideoWriter_fourcc(*"XVID"), 60, (heatmap.shape[1], heatmap.shape[0]))
+
+
     for i, startLoc in enumerate(lost_people_init_loc):
         print(f"Modeling person {i+1} starting at {startLoc}...")
         heatmap = heatmap + generateCHM(map, startLoc, iterations=25000)
     
+    #out.release()
 
     # Plot Heatmap
     #plt.imshow(heatmap, cmap="hot")

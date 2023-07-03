@@ -33,7 +33,7 @@ class SimulationMap:
 
         obstacleX = size*np.random.rand(numObstacles)
         obstacleY = size*np.random.rand(numObstacles)
-        obstacleRadii = 25*np.random.rand(numObstacles) + 25
+        obstacleRadii = 15*np.random.rand(numObstacles) + 5
 
         self.obstacles = list(zip(list(zip(obstacleX, obstacleY)), obstacleRadii))
         self.maplen = size
@@ -85,13 +85,13 @@ class SimulationMap:
         # Generate a map of size self.mapX.shape filled with random numbers from a normal distribution.
         # For all entries in the initial map, limit the lowest value to be randNumMin
         initialMap = np.maximum(np.random.normal(0, 1, self.mapX.shape), randNumMin)
-        print(f"Initial Map's dimensions: {initialMap.shape}, Max Height: {initialMap.max()}, Min Height = {initialMap.min()}")
+        #print(f"Initial Map's dimensions: {initialMap.shape}, Max Height: {initialMap.max()}, Min Height = {initialMap.min()}")
 
 
         # Perform an operation on all values of initialMap to translate from range [randNumMin, 1], to [minHeight, maxHeight]
         self.terrainHeight = self.convertRange(initialMap, initialMap.min(), initialMap.max(), minHeight, maxHeight)
 
-        print(f"Terrain Height's dimensions: {self.terrainHeight.shape}, Max Height: {np.max(self.terrainHeight)}, Min Height = {np.min(self.terrainHeight)}")
+        #print(f"Terrain Height's dimensions: {self.terrainHeight.shape}, Max Height: {np.max(self.terrainHeight)}, Min Height = {np.min(self.terrainHeight)}")
 
 
         # Smoothen map by applying a 2D gaussian filter
@@ -110,7 +110,8 @@ class SimulationMap:
 
     # Load function is designed to read 400x400 maps with a 10x10 resolution. 
     # WILL NOT WORK FOR ANY OTHER MAP SPEC UNLESS EDITED
-    def loadMap(self, mapName:str="TestMap.npy"):
+    def loadMap(self, mapName:str="TestMap"):
+        mapName += ".npy"
         self.maplen = 400
         self.res = 10
 
@@ -171,10 +172,10 @@ class SimulationMap:
 
 
 if __name__ == "__main__":
-    map = SimulationMap(400, 10, maxHeight=3)
-    map.loadMap()
+    map = SimulationMap(400, 20, maxHeight=3, numObstacles=0)
     map.plot(plotMaxHeight = 15, rstride=1, cstride=1)
-    prompt = input("Would you like to save the map? ")
+    prompt = input("Would you like to save the map?\n")
     if prompt.lower() == 'yes':
-        map.saveMap()
-        print("Map Saved.")
+        mapName = input("What would you like to name this map?\n")
+        map.saveMap(mapName)
+        print(f"Map Saved as {mapName}.")

@@ -11,7 +11,6 @@ def augmentedHeatmap(searcherMap, heatmap, tuner):
 
     #numerator = heatmap[:, :] + mu
     #denominator = 1 + tuner*searcherMap
-
     augMap = (heatmap[:, :] + mu)/(1 + tuner*searcherMap)
 
     return augMap
@@ -75,6 +74,8 @@ def main():
     plt.colorbar()
 
     plt.show()
+
+    
     
     pass
 
